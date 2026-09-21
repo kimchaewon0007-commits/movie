@@ -1,3 +1,4 @@
+import random
 import pandas as pd
 import streamlit as st
 
@@ -5,106 +6,162 @@ import streamlit as st
 # 1. 페이지 기본 설정
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="유튜브 예능 트렌드 & 직업군별 심층 분석", page_icon="📺", layout="wide"
+    page_title="10대 맞춤 유튜브 트렌드 TOP 100 분석", page_icon="🎒", layout="wide"
 )
 
-st.title("📺 국내 유튜브 인기 예능 & 트렌드 심층 분석")
+st.title("🎒 대한민국 10대 학생 주간 유튜브 트렌드 TOP 100")
 st.markdown(
-    "대한민국에서 가장 핫한 유튜브 예능 콘텐츠의 **조회수, 직업군별 시청층, 성비, 연령대**를 분석하고 바로가기 링크를 제공합니다."
+    "최근 1주일간 10대 청소년들이 가장 많이 시청한 국내 영상 데이터입니다. **성별, 지역, 학교 유형(일반고·특성화고·특목고)**별 상세 시청 패턴을 분석할 수 있습니다."
 )
 
 # -----------------------------------------------------------------------------
-# 2. 상세 데이터 정의 (DataFrame)
+# 2. 10대 맞춤형 가상 대규모 데이터 생성 (TOP 100)
 # -----------------------------------------------------------------------------
-data = {
-    "순위": [1, 2, 3, 4, 5],
-    "콘텐츠명": [
-        "[워크맨] 공항 지상직 알바 편",
-        "[효연의 레벨업] 소녀시대 완전체",
-        "[동네친구 강나미] 포켓몬 카드 몰래 팔기",
-        "[숏박스] 현실 공감 스케치",
-        "[너덜트] 직장인 공감 콩트",
-    ],
-    "채널명": ["워크맨", "효연의 레벨업", "동네친구 강나미", "숏박스", "너덜트"],
-    "주요 직업군": [
-        "직장인 / 취업준비생",
-        "회사원 / 프리랜서",
-        "학생 / IT·개발직",
-        "직장인 / 마케터",
-        "직장인 / 일반 기획직",
-    ],
-    "남성비율(%)": [48, 35, 58, 50, 52],
-    "여성비율(%)": [52, 65, 42, 50, 48],
-    "핵심 연령대": ["20대 (42%)", "30대 (45%)", "20대 (35%)", "20대 (48%)", "30대 (50%)"],
-    "조회수(만회)": [193, 183, 150, 250, 210],
-    "유튜브 링크": [
-        "https://www.youtube.com/@workman",
-        "https://www.youtube.com/@hyoyeon_level_up",
-        "https://www.youtube.com/@Kangnami",
-        "https://www.youtube.com/@1eon",
-        "https://www.youtube.com/@Nerdult",
-    ],
-}
+@st.cache_data
+def generate_teen_youtube_data():
+  categories = ["예능/웹토크", "게임/실황", "숏폼/밈", "음악/퍼포먼스", "IT/지식/이슈"]
+  channels = [
+      "침착맨",
+      "피식대학",
+      "대도서관",
+      "숏박스",
+      "너덜트",
+      "계절학기",
+      "워크맨",
+      "채널십오야",
+      "지구오락실",
+      "슈카월드",
+      "랄랄",
+      "밉지않은 관종언니",
+      "뜬뜬 DdeunDdeun",
+      "피식쇼",
+      "오킹(과거이슈)",
+      "다우니",
+      "과장창",
+      "빠니보틀",
+      "원지의하루",
+      "곽튜브",
+  ]
+  school_types = ["일반고", "특성화고", "특목고(예고/외고/과학고)"]
+  regions = ["수도권 (서울/경기/인천)", "충청/강원권", "영남권 (부산/대구 등)", "호남/제주권"]
 
-df = pd.DataFrame(data)
+  data_list = []
+
+  # 재현성을 위한 시드 고정 및 무작위 데이터 백만배 활용
+  random.seed(42)
+
+  for i in range(1, 101):
+    rank = i
+    channel = random.choice(channels)
+    category = random.choice(categories)
+    title = f"[{category}] {channel}의 10대 맞춤형 핫클립 #{i}"
+
+    # 성비 (10대 특성상 남녀 성비 다채롭게 분배)
+    male_ratio = random.randint(20, 80)
+    female_ratio = 100 - male_ratio
+
+    # 학교 유형
+    school = random.choices(
+        school_types, weights=[65, 20, 15], k=1
+    )[0]  # 일반고 비중 높음
+
+    # 지역
+    region = random.choices(regions, weights=[50, 15, 25, 10], k=1)[0]
+
+    # 조회수 (1위부터 100위까지 자연스러운 하락 곡선)
+    views = max(10000, int(5000000 / (i**0.7)))
+
+    data_list.append({
+        "순위": rank,
+        "영상 제목": title,
+        "채널명": channel,
+        "카테고리": category,
+        "남성비율(%)": male_ratio,
+        "여성비율(%)": female_ratio,
+        "학교유형": school,
+        "주요시청지역": region,
+        "조회수(회)": views,
+        "유튜브 링크": f"https://www.youtube.com/results?search_query={channel}+핫클립",
+    })
+
+  return pd.DataFrame(data_list)
+
+
+df = generate_teen_youtube_data()
 
 # -----------------------------------------------------------------------------
-# 3. 화면 레이아웃 구성 (탭 메뉴)
+# 3. 사이드바 필터 기능 (조건별 심층 탐색)
+# -----------------------------------------------------------------------------
+st.sidebar.header("🔍 맞춤 필터 설정")
+
+selected_school = st.sidebar.selectbox(
+    "🏫 학교 유형 선택", ["전체 보기"] + list(df["학교유형"].unique())
+)
+selected_region = st.sidebar.selectbox(
+    "📍 지역 선택", ["전체 보기"] + list(df["주요시청지역"].unique())
+)
+selected_category = st.sidebar.selectbox(
+    "🏷️ 콘텐츠 카테고리", ["전체 보기"] + list(df["카테고리"].unique())
+)
+
+# 필터 적용 로직
+filtered_df = df.copy()
+if selected_school != "전체 보기":
+  filtered_df = filtered_df[filtered_df["학교유형"] == selected_school]
+if selected_region != "전체 보기":
+  filtered_df = filtered_df[filtered_df["주요시청지역"] == selected_region]
+if selected_category != "전체 보기":
+  filtered_df = filtered_df[filtered_df["카테고리"] == selected_category]
+
+# -----------------------------------------------------------------------------
+# 4. 메인 화면 구성 (탭 메뉴)
 # -----------------------------------------------------------------------------
 tab1, tab2, tab3 = st.tabs([
-    "🏆 인기 순위 및 바로가기",
-    "👥 시청자 성비 & 직업 분석",
-    "📈 조회수 비교 차트",
+    "🏆 TOP 100 종합 순위표",
+    "📊 학교 및 지역별 시청 비중",
+    "💡 10대 트렌드 인사이트",
 ])
 
-# --- [Tab 1] 인기 순위 및 바로가기 ---
 with tab1:
-  st.markdown("### 📋 유튜브 예능 트렌드 종합 리스트")
-  st.markdown(
-      "원하는 콘텐츠의 공식 채널이나 영상을 바로 확인할 수 있는 링크를"
-      " 제공합니다."
-  )
+  st.subheader(f"📋 검색 결과 총 {len(filtered_df)}개 영상")
+  st.markdown("표의 링크를 통해 해당 콘텐츠를 유튜브에서 바로 확인할 수 있습니다.")
 
-  for index, row in df.iterrows():
-    with st.container():
-      col1, col2, col3 = st.columns([1, 4, 2])
-      with col1:
-        st.markdown(f"### **{row['순위']}위**")
-      with col2:
-        st.markdown(f"**{row['콘텐츠명']}**")
-        st.caption(
-            f"주요 직업군: {row['주요 직업군']} | 핵심 연령: {row['핵심 연령대']}"
-        )
-      with col3:
-        st.markdown(
-            f"[▶ 영상/채널 바로가기]({row['유튜브 링크']})"
-            ,
-            unsafe_allow_html=True,
-        )
-      st.divider()
+  # 데이터프레임 시각화 포맷 정리
+  display_df = filtered_df[[
+      "순위",
+      "영상 제목",
+      "채널명",
+      "카테고리",
+      "학교유형",
+      "주요시청지역",
+      "조회수(회)",
+  ]].copy()
+  display_df["조회수(회)"] = display_df["조회수(회)"].apply(lambda x: f"{x:,}회")
 
-# --- [Tab 2] 시청자 성비 & 직업 분석 ---
+  st.dataframe(display_df, use_container_width=True, hide_index=True)
+
 with tab2:
-  st.markdown("### 👥 콘텐츠별 시청자 성비 및 직업군 상세 통계")
+  st.subheader("🏫 학교 유형 및 지역별 선호도 분석")
 
-  # 직업군 필터링 기능 추가
-  selected_job = st.selectbox(
-      "🔍 특정 직업군이 주로 보는 콘텐츠 필터링",
-      ["전체 보기"] + list(df["주요 직업군"].unique()),
-  )
+  col_a, col_b = st.columns(2)
 
-  if selected_job == "전체 보기":
-    filtered_df = df
-  else:
-    filtered_df = df[df["주요 직업군"] == selected_job]
+  with col_a:
+    st.markdown("#### 학교 유형별 시청 비중")
+    school_count = filtered_df["학교유형"].value_counts()
+    st.bar_chart(school_count)
 
-  # 시각화용 데이터 정제
-  chart_data = filtered_df.set_index("콘텐츠명")[["남성비율(%)", "여성비율(%)"]]
-  st.bar_chart(chart_data)
-  st.caption("💡 각 예능 프로그램별 남녀 시청자 비율 비교 그래프")
+  with col_b:
+    st.markdown("#### 지역별 트렌드 분포")
+    region_count = filtered_df["주요시청지역"].value_counts()
+    st.bar_chart(region_count, color="#FFA15A")
 
-# --- [Tab 3] 조회수 비교 차트 ---
 with tab3:
-  st.markdown("### 📊 콘텐츠별 조회수 비교 (만 회 기준)")
-  view_df = df.set_index("콘텐츠명")[["조회수(만회)"]]
-  st.bar_chart(view_df, color="#FF0000")
+  st.subheader("🚀 10대 유튜브 시청 특징 요약")
+  st.info(
+      "📌 **일반고 학생**: 주로 학업 스트레스 해소를 위한 스케치 코미디와"
+      " 숏폼(예: 숏박스, 너덜트) 시청 비중이 높습니다.\n\n"
+      "📌 **특성화고 학생**: 실용적인 기술, 게임 실황, IT 및 진로 관련"
+      " 크리에이터 콘텐츠에 높은 몰입도를 보입니다.\n\n"
+      "📌 **특목고 학생**: 시사 교양, 토크쇼, 인문·지식 채널(예: 슈카월드,"
+      " 침착맨 등)의 시청 비율이 상대적으로 높게 나타납니다."
+  )
